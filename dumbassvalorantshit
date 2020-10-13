@@ -1,0 +1,66 @@
+
+
+
+try:
+    from PIL import Image, ImageGrab
+except ImportError:
+    import imageio
+import pytesseract
+import cv2
+import numpy as np
+import socket
+import time
+from mss import mss
+
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract'
+
+TCP_IP = ''
+TCP_PORT = 1337
+BUFFER_SIZE = 16
+
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.connect((TCP_IP, TCP_PORT))
+
+
+lower_range = np.array([230,230,230])
+upper_range = np.array([255,22355,255])
+
+
+print("hello")
+
+s.send(str('L').encode())  
+
+
+while True:
+    
+    im1 = ImageGrab.grab(bbox= (1525, 100 , 1623, 132))
+    im = cv2.cvtColor(np.array(im1), cv2.COLOR_RGB2BGR)
+
+    mask = cv2.inRange(im, lower_range, upper_range)
+    norm_img = np.zeros((mask.shape[0], mask.shape[1]))
+    mask1 = cv2.normalize(mask, norm_img, 0, 255, cv2.NORM_MINMAX)
+    mask2 = cv2.threshold(mask1, 100, 255, cv2.THRESH_BINARY) [1]
+    mask3 = cv2.GaussianBlur(mask2, (1,1), 0)
+    cv2.imwrite('basemask.png', mask3)
+    bgr = cv2.imread('basemask.png', cv2.IMREAD_COLOR)
+    gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+    cv2.imshow('image', im)
+    cv2.imshow('mask', gray)
+    cv2.imwrite('image.png', gray)
+    imagetext = pytesseract.image_to_string(Image.open('image.png')) 
+    
+    if imagetext != '':
+        cv2.imwrite('text.png', mask)
+        print(imagetext)
+    if imagetext == 'lamsyth':
+        cv2.imwrite('name.png', mask)  
+        print('you died suck lol')
+        s.send(str('L').encode())  
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        cv2.destroyAllWindows()
+        break
+
+    
+
+s.close()
